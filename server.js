@@ -281,11 +281,13 @@ setInterval(() => {
         const playerList = Object.values(room.players);
 
         // --- Round 2: expire stun timers ---
+        let stunStateChanged = false;
         if (room.round === 2) {
             playerList.forEach(p => {
                 if (p.stunned && now >= p.stunnedUntil) {
                     p.stunned = false;
                     p.stunnedUntil = 0;
+                    stunStateChanged = true;
                     console.log(`[Room ${roomCode}] Node #${p.nodeId} stun expired`);
                 }
             });
@@ -301,9 +303,9 @@ setInterval(() => {
             // Skip stun if host turned it off (0) or during 3s spawn grace period
             const timeSinceRoundStart = now - (room.roundStartedAt || 0);
             if (timeSinceRoundStart > 3000 && stunCount > 0) {
-                const contact = room.physics.getFirstContactPoint();
+                const contact = room.physics.getFirstContactPoint(4);
                 if (contact) {
-                    const sorted = room.physics.getContactNodeDistances(playerList);
+                    const sorted = room.physics.getContactNodeDistances(playerList, contact);
                     const toStun = sorted.slice(0, stunCount);
                     toStun.forEach(entry => {
                         const p = room.players[entry.playerId];
@@ -311,13 +313,18 @@ setInterval(() => {
                         if (p && !p.stunned && (!p.stunImmuneUntil || now >= p.stunImmuneUntil)) {
                             p.stunned         = true;
                             p.stunnedUntil    = now + rc.stunDurationMs;
-                            p.stunImmuneUntil = now + rc.stunDurationMs + 1200; // 1.2s grace to steer away after stun
+                            p.stunImmuneUntil = now + rc.stunDurationMs + 1000; // 1s grace to steer away after stun
                             p.vector          = { x: 0, y: 0 };
+                            stunStateChanged  = true;
                             console.log(`[Room ${roomCode}] Node #${p.nodeId} STUNNED for ${rc.stunDurationMs}ms (penalty: ${stunCount})`);
                         }
                     });
                 }
             }
+        }
+
+        if (stunStateChanged) {
+            io.to(roomCode).emit('state-update', { roomCode, players: getRoomPlayers(roomCode) });
         }
 
         // --- Win detection ---

@@ -169,12 +169,13 @@ export class PhysicsEngine {
         return false;
     }
 
-    // Returns the first contact point world-position (null if no contact)
-    getFirstContactPoint() {
+    // Returns the first contact point world-position (null if no contact within margin)
+    getFirstContactPoint(margin = 4) {
         const points = this.getCollisionPoints();
         for (const p of points) {
             for (const w of this.walls) {
-                if (p.x > w.x && p.x < w.x + w.w && p.y > w.y && p.y < w.y + w.h) {
+                if (p.x >= w.x - margin && p.x <= w.x + w.w + margin &&
+                    p.y >= w.y - margin && p.y <= w.y + w.h + margin) {
                     return { x: p.x, y: p.y };
                 }
             }
@@ -183,9 +184,9 @@ export class PhysicsEngine {
     }
 
     // For stun targeting: returns playerList sorted by their node's distance to the nearest contact point
-    // Used by server in Round 2 to identify which 2 nodes to stun
-    getContactNodeDistances(playerList) {
-        const contact = this.getFirstContactPoint();
+    // Used by server in Round 2 to identify which nodes to stun
+    getContactNodeDistances(playerList, contactPoint = null) {
+        const contact = contactPoint || this.getFirstContactPoint(4);
         if (!contact || playerList.length === 0) return [];
 
         const nodes  = this.getNodePositions(playerList.length);
@@ -193,7 +194,7 @@ export class PhysicsEngine {
         const sin    = Math.sin(this.angle);
 
         return playerList.map((player, idx) => {
-            const node = nodes[idx];
+            const node = nodes.find(n => n.id === player.nodeId) || nodes[idx];
             if (!node) return { playerId: player.id, nodeId: player.nodeId, dist: Infinity };
             const wx   = this.x + (node.rx * cos - node.ry * sin);
             const wy   = this.y + (node.rx * sin + node.ry * cos);

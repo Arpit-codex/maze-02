@@ -1045,6 +1045,12 @@
         });
 
         function handleMove(e) {
+            if (isMyNodeStunned) {
+                knob.style.transform = `translate(0px, 0px)`;
+                document.getElementById('vectorText').innerText = `⚡ STUNNED (0.00 | 0.00)`;
+                return;
+            }
+
             let dx = e.clientX - center.x;
             let dy = e.clientY - center.y;
             let dist = Math.hypot(dx, dy);
