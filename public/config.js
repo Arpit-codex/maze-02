@@ -20,7 +20,8 @@ export const CONFIG = {
             startX: 300,
             zigzag: false,           // gaps all centred
             zigzagOffsets: [],       // unused in round 1
-            stunOnContact: false,
+            stunOnContact: true,
+            stunDurationMs: 2500,
             winX: 700,
             headWidth: 44,
             headHeight: 30,

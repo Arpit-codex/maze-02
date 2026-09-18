@@ -280,46 +280,43 @@ setInterval(() => {
 
         const playerList = Object.values(room.players);
 
-        // --- Round 2: expire stun timers ---
+        // --- Expire stun timers (all rounds) ---
         let stunStateChanged = false;
-        if (room.round === 2) {
-            playerList.forEach(p => {
-                if (p.stunned && now >= p.stunnedUntil) {
-                    p.stunned = false;
-                    p.stunnedUntil = 0;
-                    stunStateChanged = true;
-                    console.log(`[Room ${roomCode}] Node #${p.nodeId} stun expired`);
-                }
-            });
-        }
+        playerList.forEach(p => {
+            if (p.stunned && now >= p.stunnedUntil) {
+                p.stunned = false;
+                p.stunnedUntil = 0;
+                stunStateChanged = true;
+                console.log(`[Room ${roomCode}] Node #${p.nodeId} stun expired`);
+            }
+        });
 
         // --- Physics step ---
         room.physics.update(playerList);
 
-        // --- Round 2: wall-contact stun (with grace period after spawn & cooldown) ---
-        if (room.round === 2) {
-            const rc = CONFIG.rounds[1];
-            const stunCount = room.stunCount !== undefined ? room.stunCount : 2;
-            // Skip stun if host turned it off (0) or during 3s spawn grace period
-            const timeSinceRoundStart = now - (room.roundStartedAt || 0);
-            if (timeSinceRoundStart > 3000 && stunCount > 0) {
-                const contact = room.physics.getFirstContactPoint(4);
-                if (contact) {
-                    const sorted = room.physics.getContactNodeDistances(playerList, contact);
-                    const toStun = sorted.slice(0, stunCount);
-                    toStun.forEach(entry => {
-                        const p = room.players[entry.playerId];
-                        // Only stun if not already stunned and immunity cooldown has passed
-                        if (p && !p.stunned && (!p.stunImmuneUntil || now >= p.stunImmuneUntil)) {
-                            p.stunned         = true;
-                            p.stunnedUntil    = now + rc.stunDurationMs;
-                            p.stunImmuneUntil = now + rc.stunDurationMs + 1000; // 1s grace to steer away after stun
-                            p.vector          = { x: 0, y: 0 };
-                            stunStateChanged  = true;
-                            console.log(`[Room ${roomCode}] Node #${p.nodeId} STUNNED for ${rc.stunDurationMs}ms (penalty: ${stunCount})`);
-                        }
-                    });
-                }
+        // --- Wall-contact stun (with grace period after spawn & cooldown) ---
+        const rc = CONFIG.rounds[room.round - 1] || CONFIG.rounds[0];
+        const stunCount = room.stunCount !== undefined ? room.stunCount : 2;
+        // Skip stun if host turned it off (0) or during 3s spawn grace period
+        const timeSinceRoundStart = now - (room.roundStartedAt || 0);
+        if (timeSinceRoundStart > 3000 && stunCount > 0 && rc.stunOnContact !== false) {
+            const contact = room.physics.getFirstContactPoint(4);
+            if (contact) {
+                const sorted = room.physics.getContactNodeDistances(playerList, contact);
+                const toStun = sorted.slice(0, stunCount);
+                toStun.forEach(entry => {
+                    const p = room.players[entry.playerId];
+                    // Only stun if not already stunned and immunity cooldown has passed
+                    if (p && !p.stunned && (!p.stunImmuneUntil || now >= p.stunImmuneUntil)) {
+                        const dur = rc.stunDurationMs || 2500;
+                        p.stunned         = true;
+                        p.stunnedUntil    = now + dur;
+                        p.stunImmuneUntil = now + dur + 1000; // 1s grace to steer away after stun
+                        p.vector          = { x: 0, y: 0 };
+                        stunStateChanged  = true;
+                        console.log(`[Room ${roomCode}] Round ${room.round} | Node #${p.nodeId} STUNNED for ${dur}ms (penalty: ${stunCount})`);
+                    }
+                });
             }
         }
 
@@ -328,7 +325,6 @@ setInterval(() => {
         }
 
         // --- Win detection ---
-        const rc    = CONFIG.rounds[room.round - 1];
         const winX  = rc ? rc.winX : 700;
         // Debug log every 2s (120 ticks) to track object position
         if (!room._debugTick) room._debugTick = 0;
