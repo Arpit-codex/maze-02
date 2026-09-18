@@ -297,10 +297,10 @@ setInterval(() => {
         // --- Wall-contact stun (with grace period after spawn & cooldown) ---
         const rc = CONFIG.rounds[room.round - 1] || CONFIG.rounds[0];
         const stunCount = room.stunCount !== undefined ? room.stunCount : 2;
-        // Skip stun if host turned it off (0) or during 3s spawn grace period
+        // Skip stun if host turned it off (0) or during 2s spawn grace period
         const timeSinceRoundStart = now - (room.roundStartedAt || 0);
-        if (timeSinceRoundStart > 3000 && stunCount > 0 && rc.stunOnContact !== false) {
-            const contact = room.physics.getFirstContactPoint(4);
+        if (timeSinceRoundStart > 2000 && stunCount > 0 && rc.stunOnContact !== false) {
+            const contact = room.physics.getFirstContactPoint(6);
             if (contact) {
                 const sorted = room.physics.getContactNodeDistances(playerList, contact);
                 const toStun = sorted.slice(0, stunCount);
@@ -311,7 +311,7 @@ setInterval(() => {
                         const dur = rc.stunDurationMs || 2500;
                         p.stunned         = true;
                         p.stunnedUntil    = now + dur;
-                        p.stunImmuneUntil = now + dur + 1000; // 1s grace to steer away after stun
+                        p.stunImmuneUntil = now + dur + 800; // 0.8s grace to steer away after stun
                         p.vector          = { x: 0, y: 0 };
                         stunStateChanged  = true;
                         console.log(`[Room ${roomCode}] Round ${room.round} | Node #${p.nodeId} STUNNED for ${dur}ms (penalty: ${stunCount})`);
