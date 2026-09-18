@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cooperative Piano-Movers | Swarm Maze</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #090d16;
+            --card-bg: rgba(19, 27, 46, 0.85);
+            --border: #1e293b;
+            --accent-cyan: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-gold: #facc15;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #090d16 70%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        /* Top Status Bar */
+        .status-bar {
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 16px;
+            margin-bottom: 8px;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            font-size: 1rem;
+        }
+
+        .brand-badge {
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            color: #fff;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+
+        .badges-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pill-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .room-pill {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-cyan);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .node-pill {
+            background: rgba(250, 204, 21, 0.2);
+            color: var(--accent-gold);
+            border-color: rgba(250, 204, 21, 0.4);
+        }
+
+        .swarm-pill {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-green);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-leave {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-leave:hover {
+            color: var(--accent-red);
+            border-color: var(--accent-red);
+        }
+
+        /* Canvas Container */
+        #canvasContainer {
+            width: 100%;
+            max-width: 960px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            background: #dcd7c9;
+        }
+
+        /* Controls Section */
+        .controls-panel {
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 24px;
+            gap: 20px;
+        }
+
+        .node-info-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .node-info-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .node-info-val {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* Virtual 360 Joystick */
+        .joystick-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .joystick-base {
+            width: 130px;
+            height: 130px;
+            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+            border: 2.5px solid var(--accent-cyan);
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), inset 0 2px 6px rgba(56, 189, 248, 0.2);
+            touch-action: none;
+            cursor: grab;
+        }
+
+        .joystick-base:active {
+            cursor: grabbing;
+        }
+
+        .joystick-knob {
+            width: 54px;
+            height: 54px;
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 12px rgba(56, 189, 248, 0.5);
+            pointer-events: none;
+            transform: translate(0px, 0px);
+            transition: transform 0.05s ease-out;
+        }
+
+        .joystick-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .vector-meter {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            min-width: 100px;
+        }
+
+        .vector-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+        }
+
+        /* LOBBY MODAL */
+        .lobby-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(9, 13, 22, 0.92);
+            backdrop-filter: blur(16px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .lobby-card {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 440px;
+            padding: 32px 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .lobby-header {
+            text-align: center;
+        }
+
+        .lobby-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .lobby-subtitle {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .research-tag {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        .tab-group {
+            display: flex;
+            background: #1f2937;
+            border-radius: 10px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .code-input-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+
+        .room-code-input {
+            width: 100%;
+            background: #0b101b;
+            border: 2px solid #334155;
+            color: #facc15;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.2rem;
+            font-weight: 800;
+            text-align: center;
+            letter-spacing: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .room-code-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+        }
+
+        .name-input {
+            background: #0b101b;
+            border: 1.5px solid #334155;
+            color: #fff;
+            font-size: 1rem;
+            padding: 10px 14px;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        .name-input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            color: #090d16;
+            box-shadow: 0 8px 20px rgba(56, 189, 248, 0.35);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-host {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: #090d16;
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.35);
+        }
+
+        .host-link-text {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .host-link-text a {
+            color: var(--accent-green);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .host-link-text a:hover {
+            text-decoration: underline;
+        }
+
+        .error-alert {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: none;
+            text-align: center;
+        }
+
+        /* VICTORY OVERLAY */
+        .win-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(9, 13, 22, 0.92);
+            backdrop-filter: blur(8px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            gap: 16px;
+            z-index: 10;
+        }
+
+        .win-title {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: var(--accent-green);
+            text-shadow: 0 0 25px rgba(34, 197, 94, 0.5);
+        }
+
+        .win-stats {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .btn-restart {
+            padding: 10px 24px;
+            font-size: 1rem;
+            font-weight: 800;
+            background: var(--accent-green);
+            color: #090d16;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 640px) {
+            .controls-panel {
+                padding: 10px 14px;
+            }
+            .joystick-base {
+                width: 110px;
+                height: 110px;
+            }
+            .joystick-knob {
+                width: 46px;
+                height: 46px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top In-Game Header -->
+    <div class="status-bar">
+        <div class="brand">
+            <span>SWARM MAZE</span>
+            <span class="brand-badge">PNAS 2.0</span>
+        </div>
+
+        <div class="badges-group">
+            <div class="pill-badge room-pill" id="roomBadge">ROOM: ----</div>
+            <div class="pill-badge node-pill" id="nodeBadge">NODE: #--</div>
+            <div class="pill-badge swarm-pill" id="swarmBadge">SWARM: 0/6</div>
+            <button class="btn-leave" id="leaveBtn" title="Leave Room">EXIT</button>
+        </div>
+    </div>
+
+    <!-- Maze Canvas View -->
+    <div id="canvasContainer">
+        <canvas id="gameCanvas" width="960" height="500"></canvas>
+        <div class="win-overlay" id="winOverlay">
+            <h2 class="win-title">NEST REACHED! 🐜</h2>
+            <p class="win-stats" id="winTime">Clear Time: --</p>
+            <button class="btn-restart" id="btnPlayAgain">PLAY NEXT ROUND</button>
+        </div>
+    </div>
+
+    <!-- Virtual Joystick Controller Section -->
+    <div class="controls-panel">
+        <div class="node-info-box">
+            <span class="node-info-title">Your Attachment Node</span>
+            <span class="node-info-val" id="nodeInfoText">
+                <span class="color-dot" id="nodeColorDot" style="background: #facc15;"></span>
+                <span id="nodeRoleName">Unassigned</span>
+            </span>
+        </div>
+
+        <div class="joystick-container">
+            <div class="joystick-base" id="joystick">
+                <div class="joystick-knob" id="knob"></div>
+            </div>
+            <span class="joystick-label">360° PULL VECTOR</span>
+        </div>
+
+        <div class="vector-meter">
+            <span class="node-info-title">Force Vector</span>
+            <span class="vector-text" id="vectorText">X: 0.00 | Y: 0.00</span>
+        </div>
+    </div>
+
+    <!-- Main Lobby Modal (Create / Join Room) -->
+    <div class="lobby-overlay" id="lobbyOverlay">
+        <div class="lobby-card">
+            <div class="lobby-header">
+                <h1 class="lobby-title">SWARM PUZZLE</h1>
+                <p class="lobby-subtitle">Cooperative 6-player rigid-body maze navigation</p>
+                <span class="research-tag">Dreyer et al. (PNAS)</span>
+            </div>
+
+            <div class="tab-group">
+                <button class="tab-btn active" id="tabJoin" onclick="switchTab('join')">Join Room</button>
+                <button class="tab-btn" id="tabCreate" onclick="switchTab('create')">Create Room</button>
+            </div>
+
+            <div class="error-alert" id="errorAlert"></div>
+
+            <!-- Join Room Panel -->
+            <div id="joinPanel" style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="input-group">
+                    <label class="input-label" for="roomCodeInput">4-Digit Room Code</label>
+                    <div class="code-input-wrapper">
+                        <input type="text" id="roomCodeInput" class="room-code-input" maxlength="4" placeholder="0000" inputmode="numeric" autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="playerNameInput">Your Nickname</label>
+                    <input type="text" id="playerNameInput" class="name-input" placeholder="e.g. Ant Leader" maxlength="16">
+                </div>
+
+                <button class="btn-action btn-primary" id="btnJoinRoom">
+                    <span>JOIN SWARM (MAX 6)</span>
+                </button>
+            </div>
+
+            <!-- Create Room Panel -->
+            <div id="createPanel" style="display: none; flex-direction: column; gap: 14px;">
+                <div class="input-group">
+                    <label class="input-label" for="hostPlayerName">Your Nickname</label>
+                    <input type="text" id="hostPlayerName" class="name-input" placeholder="e.g. Swarm Pilot" maxlength="16">
+                </div>
+
+                <button class="btn-action btn-primary" id="btnCreatePlayerRoom">
+                    <span>CREATE & PLAY AS NODE #1</span>
+                </button>
+
+                <button class="btn-action btn-host" id="btnCreateHostRoom">
+                    <span>CREATE BIG SCREEN (TV DISPLAY)</span>
+                </button>
+            </div>
+
+            <div class="host-link-text">
+                Want a dedicated TV / Spectator screen? <a href="/host.html">Open Host View</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module">
+        import { PhysicsEngine } from './physics.js';
+        import { MazeRenderer } from './renderer.js';
+
+        const socket = io();
+        const canvas = document.getElementById('gameCanvas');
+        const physics = new PhysicsEngine();
+        const renderer = new MazeRenderer(canvas);
+
+        let currentRoomCode = null;
+        let myNodeId = null;
+        let playersList = [];
+        let gameActive = true;
+        let clearTime = null;
+
+        // URL query param support: ?room=1234
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRoom = urlParams.get('room');
+        if (urlRoom && urlRoom.length === 4) {
+            document.getElementById('roomCodeInput').value = urlRoom;
+        }
+
+        // Tab switching
+        window.switchTab = (tab) => {
+            hideError();
+            if (tab === 'join') {
+                document.getElementById('tabJoin').classList.add('active');
+                document.getElementById('tabCreate').classList.remove('active');
+                document.getElementById('joinPanel').style.display = 'flex';
+                document.getElementById('createPanel').style.display = 'none';
+            } else {
+                document.getElementById('tabCreate').classList.add('active');
+                document.getElementById('tabJoin').classList.remove('active');
+                document.getElementById('joinPanel').style.display = 'none';
+                document.getElementById('createPanel').style.display = 'flex';
+            }
+        };
+
+        function showError(msg) {
+            const err = document.getElementById('errorAlert');
+            err.innerText = msg;
+            err.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorAlert').style.display = 'none';
+        }
+
+        // Join Room Action
+        document.getElementById('btnJoinRoom').addEventListener('click', () => {
+            const code = document.getElementById('roomCodeInput').value.trim();
+            const name = document.getElementById('playerNameInput').value.trim();
+
+            if (!code || code.length !== 4) {
+                showError('Please enter a valid 4-digit room code.');
+                return;
+            }
+            hideError();
+            socket.emit('join-room', { roomCode: code, playerName: name, isHost: false });
+        });
+
+        // Create Player Room Action
+        document.getElementById('btnCreatePlayerRoom').addEventListener('click', () => {
+            const name = document.getElementById('hostPlayerName').value.trim();
+            hideError();
+            socket.emit('create-room', { playerName: name, isHost: false });
+        });
+
+        // Create Host Display Room Action
+        document.getElementById('btnCreateHostRoom').addEventListener('click', () => {
+            window.location.href = '/host.html?create=1';
+        });
+
+        // Socket Responses
+        socket.on('join-error', (data) => {
+            showError(data.message || 'Error joining room.');
+        });
+
+        socket.on('room-created', (data) => {
+            setupInGame(data.roomCode, data.nodeId || 1);
+        });
+
+        socket.on('room-joined', (data) => {
+            setupInGame(data.roomCode, data.nodeId);
+        });
+
+        socket.on('assign-node', (data) => {
+            myNodeId = data.nodeId;
+            updateNodeBadge();
+        });
+
+        let targetX = physics.x;
+        let targetY = physics.y;
+        let targetAngle = physics.angle;
+
+        socket.on('physics-sync', (data) => {
+            if (data.roomCode === currentRoomCode) {
+                targetX = data.x;
+                targetY = data.y;
+                targetAngle = data.angle;
+
+                if (Math.hypot(targetX - physics.x, targetY - physics.y) > 80) {
+                    physics.x = targetX;
+                    physics.y = targetY;
+                    physics.angle = targetAngle;
+                }
+            }
+        });
+
+        socket.on('state-update', (data) => {
+            if (data.roomCode === currentRoomCode) {
+                playersList = data.players || [];
+                updateSwarmUI();
+            }
+        });
+
+        socket.on('puzzle-reset', (data) => {
+            if (data.roomCode === currentRoomCode) {
+                physics.reset();
+                targetX = physics.x;
+                targetY = physics.y;
+                targetAngle = physics.angle;
+                gameActive = true;
+                document.getElementById('winOverlay').style.display = 'none';
+            }
+        });
+
+        function setupInGame(roomCode, nodeId) {
+            currentRoomCode = roomCode;
+            myNodeId = nodeId;
+            document.getElementById('lobbyOverlay').style.display = 'none';
+            document.getElementById('roomBadge').innerText = `ROOM: ${roomCode}`;
+            updateNodeBadge();
+            physics.reset();
+            targetX = physics.x;
+            targetY = physics.y;
+            targetAngle = physics.angle;
+            gameActive = true;
+        }
+
+        function updateNodeBadge() {
+            if (!myNodeId) return;
+            const nodes = physics.getNodePositions(6);
+            const node = nodes.find(n => n.id === myNodeId) || { name: `Node #${myNodeId}`, color: '#facc15' };
+
+            document.getElementById('nodeBadge').innerText = `NODE: #${myNodeId}`;
+            document.getElementById('nodeRoleName').innerText = `#${myNodeId} - ${node.name}`;
+            document.getElementById('nodeColorDot').style.background = node.color;
+        }
+
+        function updateSwarmUI() {
+            document.getElementById('swarmBadge').innerText = `SWARM: ${playersList.length}/6`;
+        }
+
+        // Leave Room
+        document.getElementById('leaveBtn').addEventListener('click', () => {
+            socket.emit('leave-room');
+            currentRoomCode = null;
+            myNodeId = null;
+            playersList = [];
+            document.getElementById('lobbyOverlay').style.display = 'flex';
+        });
+
+        // Play Next Round / Reset
+        document.getElementById('btnPlayAgain').addEventListener('click', () => {
+            socket.emit('reset-puzzle');
+        });
+
+        // 360 Joystick Logic
+        const joystick = document.getElementById('joystick');
+        const knob = document.getElementById('knob');
+        let active = false;
+        let center = { x: 0, y: 0 };
+        const maxRadius = 45;
+
+        joystick.addEventListener('pointerdown', (e) => {
+            active = true;
+            joystick.setPointerCapture(e.pointerId);
+            const rect = joystick.getBoundingClientRect();
+            center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+            handleMove(e);
+        });
+
+        joystick.addEventListener('pointermove', (e) => {
+            if (active) handleMove(e);
+        });
+
+        function handleMove(e) {
+            let dx = e.clientX - center.x;
+            let dy = e.clientY - center.y;
+            let dist = Math.hypot(dx, dy);
+
+            if (dist > maxRadius) {
+                dx = (dx / dist) * maxRadius;
+                dy = (dy / dist) * maxRadius;
+            }
+
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+            const normX = dx / maxRadius;
+            const normY = dy / maxRadius;
+
+            document.getElementById('vectorText').innerText = `X: ${normX.toFixed(2)} | Y: ${normY.toFixed(2)}`;
+
+            if (currentRoomCode) {
+                socket.emit('player-input', { x: normX, y: normY });
+            }
+        }
+
+        const handleRelease = () => {
+            if (!active) return;
+            active = false;
+            knob.style.transform = `translate(0px, 0px)`;
+            document.getElementById('vectorText').innerText = `X: 0.00 | Y: 0.00`;
+            if (currentRoomCode) {
+                socket.emit('player-input', { x: 0, y: 0 });
+            }
+        };
+
+        joystick.addEventListener('pointerup', handleRelease);
+        joystick.addEventListener('pointercancel', handleRelease);
+
+        // Keyboard Controls Fallback (WASD / Arrows)
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            updateKeyboardVector();
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+            updateKeyboardVector();
+        });
+
+        function updateKeyboardVector() {
+            if (active) return; // joystick takes priority
+            let kx = 0, ky = 0;
+            if (keys['arrowup'] || keys['w']) ky -= 1;
+            if (keys['arrowdown'] || keys['s']) ky += 1;
+            if (keys['arrowleft'] || keys['a']) kx -= 1;
+            if (keys['arrowright'] || keys['d']) kx += 1;
+
+            const len = Math.hypot(kx, ky);
+            if (len > 0) {
+                kx /= len;
+                ky /= len;
+            }
+
+            knob.style.transform = `translate(${kx * maxRadius}px, ${ky * maxRadius}px)`;
+            document.getElementById('vectorText').innerText = `X: ${kx.toFixed(2)} | Y: ${ky.toFixed(2)}`;
+            if (currentRoomCode) {
+                socket.emit('player-input', { x: kx, y: ky });
+            }
+        }
+
+        // Game Loop - smoothly tracks authoritative server state
+        function gameLoop() {
+            if (currentRoomCode && gameActive) {
+                // Smooth interpolation (lerp position, shortest-path angle lerp)
+                const lerpFactor = 0.4;
+                physics.x += (targetX - physics.x) * lerpFactor;
+                physics.y += (targetY - physics.y) * lerpFactor;
+
+                let angleDiff = (targetAngle - physics.angle) % (Math.PI * 2);
+                if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                physics.angle += angleDiff * lerpFactor;
+
+                renderer.render(physics, playersList, myNodeId);
+
+                // Check nest arrival (x > 780 clears slit 2 into nest chamber)
+                if (physics.x > 780 && gameActive) {
+                    gameActive = false;
+                    document.getElementById('winOverlay').style.display = 'flex';
+                }
+            }
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>

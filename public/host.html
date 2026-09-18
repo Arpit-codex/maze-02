@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm Maze - Host / TV Screen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #090d16;
+            --panel-bg: #111827;
+            --border: #1f2937;
+            --cyan: #38bdf8;
+            --green: #22c55e;
+            --gold: #facc15;
+            --red: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% 10%, #1e1b4b 0%, #090d16 80%);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            overflow: hidden;
+        }
+
+        /* Top Host Dashboard */
+        .host-dashboard {
+            width: 100%;
+            max-width: 1020px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px 28px;
+            margin-bottom: 14px;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6);
+            gap: 20px;
+        }
+
+        .code-display-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .code-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .room-code-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--gold);
+            background: rgba(250, 204, 21, 0.1);
+            border: 2px solid rgba(250, 204, 21, 0.35);
+            padding: 2px 16px;
+            border-radius: 12px;
+            letter-spacing: 6px;
+            text-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
+        }
+
+        .join-instructions {
+            font-size: 0.85rem;
+            color: var(--cyan);
+            font-weight: 600;
+        }
+
+        /* 6-Node Roster Slots */
+        .slots-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slot-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            background: #0b101b;
+            border: 1.5px dashed #334155;
+            border-radius: 8px;
+            min-width: 58px;
+            transition: all 0.2s;
+        }
+
+        .slot-box.active {
+            border-style: solid;
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        .slot-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+
+        .slot-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #334155;
+        }
+
+        .slot-name {
+            font-size: 0.7rem;
+            color: #cbd5e1;
+            max-width: 52px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Actions & Stats */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .timer-box {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--cyan);
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 6px 14px;
+            border-radius: 10px;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            font-weight: 800;
+            border-radius: 10px;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.15s, filter 0.15s;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+        }
+
+        .btn-new-room {
+            background: #1f2937;
+            color: #cbd5e1;
+            border: 1px solid var(--border);
+        }
+
+        /* Canvas Wrapper */
+        #canvasContainer {
+            position: relative;
+            max-width: 1020px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        canvas {
+            background: #dcd7c9;
+            border: 4px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            width: 100%;
+            max-width: 960px;
+            height: auto;
+        }
+
+        /* Overlay Screens */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(9, 13, 22, 0.92);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            gap: 20px;
+            z-index: 50;
+        }
+
+        .overlay h1 {
+            font-size: 4rem;
+            color: var(--green);
+            text-shadow: 0 0 35px rgba(34, 197, 94, 0.6);
+            margin: 0;
+        }
+
+        .btn-play-again {
+            padding: 12px 32px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            background: var(--green);
+            color: #090d16;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Host Start Modal */
+        .host-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(9, 13, 22, 0.95);
+            backdrop-filter: blur(16px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .host-modal-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 460px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+        }
+
+        .host-title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #38bdf8, #22c55e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-create-host {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #090d16;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.15rem;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.35);
+        }
+
+        .or-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .or-divider::before, .or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .input-observe {
+            background: #0b101b;
+            border: 2px solid #334155;
+            color: var(--gold);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.8rem;
+            letter-spacing: 8px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        .btn-observe {
+            background: #1f2937;
+            color: var(--cyan);
+            border: 1.5px solid var(--cyan);
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .host-error {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.15);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Host Main Dashboard Header -->
+    <div class="host-dashboard">
+        <div class="code-display-group">
+            <div>
+                <div class="code-label">Room Code</div>
+                <div class="room-code-tag" id="displayRoomCode">----</div>
+            </div>
+            <div>
+                <div class="join-instructions">JOIN AT: <span id="joinUrlText" style="color: #fff;">localhost:3000</span></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Max 6 Swarm Players</div>
+            </div>
+        </div>
+
+        <!-- 6 Player Slot Indicators -->
+        <div class="slots-container" id="slotsContainer">
+            <!-- Dynamically populated 6 slots -->
+        </div>
+
+        <!-- Stats & Actions -->
+        <div class="header-actions">
+            <div class="timer-box" id="timer">0.0s</div>
+            <button class="btn btn-reset" id="btnReset">RESET</button>
+            <button class="btn btn-new-room" id="btnNewRoom">EXIT</button>
+        </div>
+    </div>
+
+    <!-- Maze Canvas -->
+    <div id="canvasContainer">
+        <canvas id="gameCanvas" width="960" height="500"></canvas>
+        <div class="overlay" id="winScreen">
+            <h1>NEST REACHED! 🐜</h1>
+            <p id="finalTime" style="font-size: 2rem; color: #94a3b8; font-weight: bold;"></p>
+            <button class="btn-play-again" id="btnWinPlayAgain">PLAY NEXT ROUND</button>
+        </div>
+    </div>
+
+    <!-- Host Start Modal (Create or Observe Room) -->
+    <div class="host-modal-overlay" id="hostModal">
+        <div class="host-modal-card">
+            <h2 class="host-title">SWARM HOST SCREEN</h2>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Display the shared cooperative maze on a TV or big monitor.</p>
+
+            <div class="host-error" id="hostError"></div>
+
+            <button class="btn-create-host" id="btnCreateHost">
+                CREATE NEW ROOM CODE
+            </button>
+
+            <div class="or-divider">OR OBSERVE EXISTING</div>
+
+            <input type="text" id="observeCodeInput" class="input-observe" maxlength="4" placeholder="0000" inputmode="numeric">
+            <button class="btn-observe" id="btnObserve">
+                CONNECT TO ROOM
+            </button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module">
+        import { PhysicsEngine } from './physics.js';
+        import { MazeRenderer } from './renderer.js';
+
+        const socket = io();
+        const canvas = document.getElementById('gameCanvas');
+        const physics = new PhysicsEngine();
+        const renderer = new MazeRenderer(canvas);
+
+        let currentRoomCode = null;
+        let playersList = [];
+        let startTime = null;
+        let gameActive = true;
+
+        const nodeColors = ['#38bdf8', '#f43f5e', '#10b981', '#f59e0b', '#a855f7', '#06b6d4'];
+
+        // Init 6 Slot UI
+        const slotsContainer = document.getElementById('slotsContainer');
+        function renderSlots() {
+            slotsContainer.innerHTML = '';
+            for (let i = 1; i <= 6; i++) {
+                const player = playersList.find(p => p.nodeId === i);
+                const color = nodeColors[i - 1];
+
+                const slot = document.createElement('div');
+                slot.className = `slot-box ${player ? 'active' : ''}`;
+                if (player) {
+                    slot.style.borderColor = color;
+                }
+
+                slot.innerHTML = `
+                    <span class="slot-number" style="color: ${player ? color : 'var(--text-muted)'}">#${i}</span>
+                    <span class="slot-dot" style="background: ${player ? color : '#334155'}; ${player ? `box-shadow: 0 0 8px ${color}` : ''}"></span>
+                    <span class="slot-name">${player ? (player.name || `P${i}`) : 'EMPTY'}</span>
+                `;
+                slotsContainer.appendChild(slot);
+            }
+        }
+        renderSlots();
+
+        // Check URL for auto-creation or room query
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoCreate = urlParams.get('create');
+        const queryRoom = urlParams.get('room');
+
+        if (autoCreate === '1') {
+            socket.emit('create-room', { isHost: true });
+        } else if (queryRoom && queryRoom.length === 4) {
+            socket.emit('join-room', { roomCode: queryRoom, isHost: true });
+        }
+
+        // Host Modal Events
+        document.getElementById('btnCreateHost').addEventListener('click', () => {
+            socket.emit('create-room', { isHost: true });
+        });
+
+        document.getElementById('btnObserve').addEventListener('click', () => {
+            const code = document.getElementById('observeCodeInput').value.trim();
+            if (!code || code.length !== 4) {
+                showHostError('Please enter a 4-digit code.');
+                return;
+            }
+            socket.emit('join-room', { roomCode: code, isHost: true });
+        });
+
+        function showHostError(msg) {
+            const err = document.getElementById('hostError');
+            err.innerText = msg;
+            err.style.display = 'block';
+        }
+
+        socket.on('join-error', (data) => {
+            showHostError(data.message || 'Error joining room.');
+        });
+
+        socket.on('room-created', (data) => {
+            enterRoom(data.roomCode);
+        });
+
+        socket.on('room-joined', (data) => {
+            enterRoom(data.roomCode);
+            playersList = data.players || [];
+            renderSlots();
+        });
+
+        function enterRoom(code) {
+            currentRoomCode = code;
+            document.getElementById('hostModal').style.display = 'none';
+            document.getElementById('displayRoomCode').innerText = code;
+            document.getElementById('joinUrlText').innerText = `${window.location.host}/?room=${code}`;
+            resetHostPuzzle();
+        }
+
+        let targetX = physics.x;
+        let targetY = physics.y;
+        let targetAngle = physics.angle;
+
+        socket.on('physics-sync', (data) => {
+            if (data.roomCode === currentRoomCode) {
+                targetX = data.x;
+                targetY = data.y;
+                targetAngle = data.angle;
+
+                if (Math.hypot(targetX - physics.x, targetY - physics.y) > 80) {
+                    physics.x = targetX;
+                    physics.y = targetY;
+                    physics.angle = targetAngle;
+                }
+            }
+        });
+
+        socket.on('state-update', (data) => {
+            if (data.roomCode === currentRoomCode) {
+                playersList = data.players || [];
+                renderSlots();
+
+                // Start timer if players start moving and timer not yet started
+                const hasMovement = playersList.some(p => p.vector && (p.vector.x !== 0 || p.vector.y !== 0));
+                if (hasMovement && !startTime && gameActive) {
+                    startTime = Date.now();
+                }
+            }
+        });
+
+        socket.on('puzzle-reset', (data) => {
+            if (data.roomCode === currentRoomCode) {
+                resetHostPuzzle();
+            }
+        });
+
+        function resetHostPuzzle() {
+            physics.reset();
+            targetX = physics.x;
+            targetY = physics.y;
+            targetAngle = physics.angle;
+            startTime = null;
+            gameActive = true;
+            document.getElementById('winScreen').style.display = 'none';
+            document.getElementById('timer').innerText = '0.0s';
+        }
+
+        document.getElementById('btnReset').addEventListener('click', () => {
+            if (currentRoomCode) {
+                socket.emit('reset-puzzle');
+            }
+        });
+
+        document.getElementById('btnWinPlayAgain').addEventListener('click', () => {
+            if (currentRoomCode) {
+                socket.emit('reset-puzzle');
+            }
+        });
+
+        document.getElementById('btnNewRoom').addEventListener('click', () => {
+            socket.emit('leave-room');
+            currentRoomCode = null;
+            playersList = [];
+            renderSlots();
+            document.getElementById('hostModal').style.display = 'flex';
+        });
+
+        // Game Loop - smoothly tracks authoritative server state
+        function gameLoop() {
+            if (currentRoomCode && gameActive) {
+                const lerpFactor = 0.4;
+                physics.x += (targetX - physics.x) * lerpFactor;
+                physics.y += (targetY - physics.y) * lerpFactor;
+
+                let angleDiff = (targetAngle - physics.angle) % (Math.PI * 2);
+                if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                physics.angle += angleDiff * lerpFactor;
+
+                renderer.render(physics, playersList, null);
+
+                if (startTime) {
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                    document.getElementById('timer').innerText = `${elapsed}s`;
+                }
+
+                if (physics.x > 780 && gameActive) {
+                    gameActive = false;
+                    const elapsed = startTime ? ((Date.now() - startTime) / 1000).toFixed(1) : '0.0';
+                    document.getElementById('finalTime').innerText = `Clear Time: ${elapsed} seconds`;
+                    document.getElementById('winScreen').style.display = 'flex';
+                }
+            }
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>

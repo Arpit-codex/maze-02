@@ -1,0 +1,23 @@
+{
+  "name": "swarm-maze",
+  "version": "1.0.0",
+  "description": "Cooperative Piano-Movers Swarm Puzzle - Real-time multiplayer rigid-body maze game inspired by Dreyer et al. (PNAS)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test_rooms.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["game", "multiplayer", "swarm", "physics", "maze", "cooperative", "socket.io"],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
+  }
+}
