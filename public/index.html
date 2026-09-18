@@ -903,15 +903,9 @@
             gameActive = false;
             const nextRound = data.nextRound;
             const overlay   = document.getElementById('roundTransitionOverlay');
-            document.getElementById('transRoundNum').innerText  = `ROUND ${nextRound}`;
-            const stunText = currentStunCount === 0 
-                ? 'Wall stun disabled by host!' 
-                : (currentStunCount === 6 
-                    ? 'Touch a wall and ALL 6 nodes get stunned!' 
-                    : `Touch a wall and ${currentStunCount} nearest nodes get stunned!`);
             document.getElementById('transRoundDesc').innerText =
                 nextRound === 2
-                    ? `3 zigzag walls · Tighter gaps · ${stunText}`
+                    ? '3 zigzag walls · Tighter gaps · Wall contact stuns the nearest nodes!'
                     : 'Prepare for the next challenge!';
             overlay.style.display = 'flex';
 

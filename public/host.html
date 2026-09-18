@@ -211,125 +211,7 @@
             max-width: 1280px;
         }
 
-        /* Round 2 Host Stun Power Panel */
-        .stun-power-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            border-radius: 12px;
-            padding: 6px 12px;
-            transition: all 0.2s ease;
-        }
 
-        .stun-power-panel:hover {
-            border-color: rgba(239, 68, 68, 0.55);
-            background: rgba(239, 68, 68, 0.12);
-        }
-
-        .stun-power-header {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .stun-icon {
-            font-size: 0.95rem;
-            color: #ef4444;
-            animation: stunGlow 1.4s ease-in-out infinite alternate;
-        }
-
-        @keyframes stunGlow {
-            from { filter: drop-shadow(0 0 2px #ef4444); }
-            to   { filter: drop-shadow(0 0 7px #f87171); }
-        }
-
-        .stun-title {
-            font-size: 0.65rem;
-            font-weight: 800;
-            letter-spacing: 1px;
-            color: #f87171;
-            text-transform: uppercase;
-        }
-
-        .stun-sub {
-            font-size: 0.65rem;
-            font-weight: 600;
-            color: #cbd5e1;
-            margin-left: auto;
-            background: rgba(0, 0, 0, 0.35);
-            padding: 1px 7px;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .stun-controls-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .stun-step-btn {
-            background: #27272a;
-            color: #fca5a5;
-            border: 1px solid rgba(239, 68, 68, 0.45);
-            border-radius: 6px;
-            width: 26px;
-            height: 26px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: 800;
-            font-family: 'JetBrains Mono', monospace;
-            cursor: pointer;
-            transition: all 0.15s ease;
-            user-select: none;
-        }
-
-        .stun-step-btn:hover {
-            background: #ef4444;
-            color: #fff;
-            border-color: #f87171;
-            transform: scale(1.1);
-        }
-
-        .stun-step-btn:active {
-            transform: scale(0.92);
-        }
-
-        .stun-pills {
-            display: flex;
-            gap: 4px;
-        }
-
-        .stun-pill {
-            background: #18181b;
-            color: #a1a1aa;
-            border: 1px solid #3f3f46;
-            border-radius: 6px;
-            padding: 3px 8px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-
-        .stun-pill:hover {
-            background: #27272a;
-            color: #fff;
-            border-color: #ef4444;
-            transform: translateY(-1px);
-        }
-
-        .stun-pill.active {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: #fff;
-            border-color: #f87171;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-        }
 
         /* Overlay Screens */
         .overlay {
@@ -489,28 +371,6 @@
 
         <!-- Stats & Actions -->
         <div class="header-actions">
-            <!-- Stun Power Control (Host Power: Increase / Decrease / Select 0-6) -->
-            <div class="stun-power-panel" id="stunPowerPanel" title="Host Power: Increase or decrease how many players get stunned when touching a wall">
-                <div class="stun-power-header">
-                    <span class="stun-icon">⚡</span>
-                    <span class="stun-title">WALL STUN PENALTY</span>
-                    <span class="stun-sub" id="stunPowerLabel">2 nearest players</span>
-                </div>
-                <div class="stun-controls-row">
-                    <button class="stun-step-btn" id="btnStunDec" title="Decrease stun count (-1)">−</button>
-                    <div class="stun-pills" id="stunPillsGroup">
-                        <button class="stun-pill" data-count="0" title="0 (Off)">0</button>
-                        <button class="stun-pill" data-count="1" title="1 player">1</button>
-                        <button class="stun-pill active" data-count="2" title="2 players (Default)">2</button>
-                        <button class="stun-pill" data-count="3" title="3 players">3</button>
-                        <button class="stun-pill" data-count="4" title="4 players">4</button>
-                        <button class="stun-pill" data-count="5" title="5 players">5</button>
-                        <button class="stun-pill" data-count="6" title="6 (All)">6</button>
-                    </div>
-                    <button class="stun-step-btn" id="btnStunInc" title="Increase stun count (+1)">+</button>
-                </div>
-            </div>
-
             <div class="timer-box" id="timer">0.0s</div>
             <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
                 <span style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Round</span>
@@ -677,64 +537,8 @@
         let targetX = physics.x;
         let targetY = physics.y;
         let targetAngle = physics.angle;
-        let currentStunCount = 2;
-
-        function updateStunUI(count) {
-            currentStunCount = count;
-            const label = document.getElementById('stunPowerLabel');
-            if (label) {
-                if (count === 0) label.innerText = 'Disabled (0 players)';
-                else if (count === 1) label.innerText = '1 nearest player';
-                else if (count === 6) label.innerText = 'ALL 6 players!';
-                else label.innerText = `${count} nearest players`;
-            }
-
-            document.querySelectorAll('.stun-pill').forEach(btn => {
-                const btnCount = parseInt(btn.dataset.count, 10);
-                btn.classList.toggle('active', btnCount === count);
-            });
-        }
-
-        // Host clicks a pill to change the stun count (0 to 6)
-        document.getElementById('stunPillsGroup').addEventListener('click', (e) => {
-            const btn = e.target.closest('.stun-pill');
-            if (!btn) return;
-            const count = parseInt(btn.dataset.count, 10);
-            updateStunUI(count);
-            if (currentRoomCode) {
-                socket.emit('set-stun-count', { roomCode: currentRoomCode, stunCount: count });
-            }
-        });
-
-        // Decrease button
-        document.getElementById('btnStunDec').addEventListener('click', () => {
-            const next = Math.max(0, currentStunCount - 1);
-            updateStunUI(next);
-            if (currentRoomCode) {
-                socket.emit('set-stun-count', { roomCode: currentRoomCode, stunCount: next });
-            }
-        });
-
-        // Increase button
-        document.getElementById('btnStunInc').addEventListener('click', () => {
-            const next = Math.min(6, currentStunCount + 1);
-            updateStunUI(next);
-            if (currentRoomCode) {
-                socket.emit('set-stun-count', { roomCode: currentRoomCode, stunCount: next });
-            }
-        });
-
-        socket.on('stun-count-updated', (data) => {
-            if (data.roomCode === currentRoomCode && data.stunCount !== undefined) {
-                updateStunUI(data.stunCount);
-            }
-        });
-
         socket.on('physics-sync', (data) => {
             if (data.roomCode === currentRoomCode) {
-                if (data.stunCount !== undefined && data.stunCount !== currentStunCount) {
-                    updateStunUI(data.stunCount);
-                }
                 if (data.round && data.round !== currentRound) {
                     currentRound = data.round;
                     document.getElementById('hostRoundBadge').innerText = `${currentRound} / 2`;

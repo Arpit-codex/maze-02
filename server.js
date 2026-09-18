@@ -254,16 +254,6 @@ io.on('connection', (socket) => {
         }
     };
 
-    // 6. Set Stun Count (Host Power for Round 2: 0 to 6 players)
-    socket.on('set-stun-count', (data = {}) => {
-        const roomCode = socket.roomCode || data.roomCode;
-        if (!roomCode || !rooms[roomCode]) return;
-        const count = Math.max(0, Math.min(6, parseInt(data.stunCount ?? 2, 10)));
-        rooms[roomCode].stunCount = count;
-        io.to(roomCode).emit('stun-count-updated', { roomCode, stunCount: count });
-        console.log(`[Room ${roomCode}] Host set stun penalty to ${count} players`);
-    });
-
     socket.on('leave-room', handleLeave);
     socket.on('disconnect', handleLeave);
 });
@@ -294,10 +284,20 @@ setInterval(() => {
         // --- Physics step ---
         room.physics.update(playerList);
 
-        // --- Wall-contact stun (with grace period after spawn & cooldown) ---
+        // --- Automatic Wall-Contact Stun Scaling ---
+        // >= 3 players: stun 2 nearest
+        // == 2 players: stun 1 nearest
+        // <= 1 player:  stun 0 (disabled for solo play)
+        let stunCount = 0;
+        if (playerList.length >= 3) {
+            stunCount = 2;
+        } else if (playerList.length === 2) {
+            stunCount = 1;
+        } else {
+            stunCount = 0;
+        }
+
         const rc = CONFIG.rounds[room.round - 1] || CONFIG.rounds[0];
-        const stunCount = room.stunCount !== undefined ? room.stunCount : 2;
-        // Skip stun if host turned it off (0) or during 2s spawn grace period
         const timeSinceRoundStart = now - (room.roundStartedAt || 0);
         if (timeSinceRoundStart > 2000 && stunCount > 0 && rc.stunOnContact !== false) {
             const contact = room.physics.getFirstContactPoint(6);
@@ -314,7 +314,7 @@ setInterval(() => {
                         p.stunImmuneUntil = now + dur + 800; // 0.8s grace to steer away after stun
                         p.vector          = { x: 0, y: 0 };
                         stunStateChanged  = true;
-                        console.log(`[Room ${roomCode}] Round ${room.round} | Node #${p.nodeId} STUNNED for ${dur}ms (penalty: ${stunCount})`);
+                        console.log(`[Room ${roomCode}] Round ${room.round} | Node #${p.nodeId} STUNNED for ${dur}ms (${playerList.length} players -> ${stunCount} stunned)`);
                     }
                 });
             }
