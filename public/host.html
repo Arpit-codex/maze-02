@@ -189,6 +189,11 @@
             width: 100%;
             display: flex;
             justify-content: center;
+            transition: max-width 0.4s ease;
+        }
+
+        #canvasContainer.expanded {
+            max-width: 1340px;
         }
 
         canvas {
@@ -199,6 +204,96 @@
             width: 100%;
             max-width: 960px;
             height: auto;
+            transition: max-width 0.4s ease;
+        }
+
+        canvas.expanded {
+            max-width: 1280px;
+        }
+
+        /* Round 2 Host Stun Power Panel */
+        .stun-power-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 6px 12px;
+            transition: all 0.2s ease;
+        }
+
+        .stun-power-panel:hover {
+            border-color: rgba(239, 68, 68, 0.55);
+            background: rgba(239, 68, 68, 0.12);
+        }
+
+        .stun-power-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stun-icon {
+            font-size: 0.95rem;
+            color: #ef4444;
+            animation: stunGlow 1.4s ease-in-out infinite alternate;
+        }
+
+        @keyframes stunGlow {
+            from { filter: drop-shadow(0 0 2px #ef4444); }
+            to   { filter: drop-shadow(0 0 7px #f87171); }
+        }
+
+        .stun-title {
+            font-size: 0.65rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #f87171;
+            text-transform: uppercase;
+        }
+
+        .stun-sub {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-left: auto;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 1px 7px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .stun-pills {
+            display: flex;
+            gap: 4px;
+        }
+
+        .stun-pill {
+            background: #18181b;
+            color: #a1a1aa;
+            border: 1px solid #3f3f46;
+            border-radius: 6px;
+            padding: 3px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .stun-pill:hover {
+            background: #27272a;
+            color: #fff;
+            border-color: #ef4444;
+            transform: translateY(-1px);
+        }
+
+        .stun-pill.active {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border-color: #f87171;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
         }
 
         /* Overlay Screens */
@@ -359,7 +454,29 @@
 
         <!-- Stats & Actions -->
         <div class="header-actions">
+            <!-- Stun Power Control (Host Power for Round 2) -->
+            <div class="stun-power-panel" id="stunPowerPanel" title="Host Power: Select how many players get stunned when touching a wall in Round 2">
+                <div class="stun-power-header">
+                    <span class="stun-icon">⚡</span>
+                    <span class="stun-title">WALL STUN PENALTY (RND 2)</span>
+                    <span class="stun-sub" id="stunPowerLabel">2 nearest players</span>
+                </div>
+                <div class="stun-pills" id="stunPillsGroup">
+                    <button class="stun-pill" data-count="0" title="Disable stun completely (0 players)">0 (Off)</button>
+                    <button class="stun-pill" data-count="1" title="1 nearest player stunned">1</button>
+                    <button class="stun-pill active" data-count="2" title="2 nearest players stunned (Default)">2</button>
+                    <button class="stun-pill" data-count="3" title="3 nearest players stunned">3</button>
+                    <button class="stun-pill" data-count="4" title="4 nearest players stunned">4</button>
+                    <button class="stun-pill" data-count="5" title="5 nearest players stunned">5</button>
+                    <button class="stun-pill" data-count="6" title="ALL 6 players stunned!">6 (All)</button>
+                </div>
+            </div>
+
             <div class="timer-box" id="timer">0.0s</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                <span style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Round</span>
+                <span id="hostRoundBadge" style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:800;color:#fb923c;">1 / 2</span>
+            </div>
             <button class="btn btn-reset" id="btnReset">RESET</button>
             <button class="btn btn-new-room" id="btnNewRoom">EXIT</button>
         </div>
@@ -368,10 +485,29 @@
     <!-- Maze Canvas -->
     <div id="canvasContainer">
         <canvas id="gameCanvas" width="960" height="500"></canvas>
+
+        <!-- Round win / transition -->
         <div class="overlay" id="winScreen">
             <h1>NEST REACHED! 🐜</h1>
-            <p id="finalTime" style="font-size: 2rem; color: #94a3b8; font-weight: bold;"></p>
-            <button class="btn-play-again" id="btnWinPlayAgain">PLAY NEXT ROUND</button>
+            <p id="finalTime" style="font-size:2rem;color:#94a3b8;font-weight:bold;"></p>
+            <button class="btn-play-again" id="btnWinPlayAgain">PLAY AGAIN</button>
+        </div>
+
+        <!-- Round transition overlay -->
+        <div class="overlay" id="roundTransScreen" style="gap:12px;">
+            <p style="font-size:1rem;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;">INCOMING</p>
+            <h1 id="hostTransRound" style="color:#f97316;text-shadow:0 0 30px rgba(249,115,22,0.6);">ROUND 2</h1>
+            <p style="font-size:1.2rem;color:#94a3b8;text-align:center;max-width:400px;">
+                3 zigzag walls &middot; Tighter gaps &middot; Touch a wall &rarr; 2 nearest nodes get stunned!
+            </p>
+            <p id="hostTransCountdown" style="font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:800;color:#fb923c;">3</p>
+        </div>
+
+        <!-- Final victory -->
+        <div class="overlay" id="finalWinScreen">
+            <h1 style="color:#facc15;text-shadow:0 0 35px rgba(250,204,21,0.6);">ALL ROUNDS COMPLETE! 🏆</h1>
+            <p id="hostFinalTime" style="font-size:2rem;color:#94a3b8;font-weight:bold;"></p>
+            <button class="btn-play-again" id="btnFinalWinPlayAgain">PLAY AGAIN</button>
         </div>
     </div>
 
@@ -407,11 +543,13 @@
         const renderer = new MazeRenderer(canvas);
 
         let currentRoomCode = null;
-        let playersList = [];
-        let startTime = null;
-        let gameActive = true;
+        let playersList     = [];
+        let startTime       = null;
+        let gameActive      = true;
+        let currentRound    = 1;
+        let stunnedNodes    = [];
 
-        const nodeColors = ['#38bdf8', '#f43f5e', '#10b981', '#f59e0b', '#a855f7', '#06b6d4'];
+        const nodeColors = ['#38bdf8','#f43f5e','#10b981','#f59e0b','#a855f7','#06b6d4'];
 
         // Init 6 Slot UI
         const slotsContainer = document.getElementById('slotsContainer');
@@ -490,22 +628,116 @@
             resetHostPuzzle();
         }
 
+        function applyHostRoundLayout(round) {
+            const isRound2 = round === 2;
+            const container = document.getElementById('canvasContainer');
+            if (container) container.classList.toggle('expanded', isRound2);
+            if (canvas) canvas.classList.toggle('expanded', isRound2);
+        }
+
         let targetX = physics.x;
         let targetY = physics.y;
         let targetAngle = physics.angle;
+        let currentStunCount = 2;
+
+        function updateStunUI(count) {
+            currentStunCount = count;
+            const label = document.getElementById('stunPowerLabel');
+            if (label) {
+                if (count === 0) label.innerText = 'Disabled (0 players)';
+                else if (count === 1) label.innerText = '1 nearest player';
+                else if (count === 6) label.innerText = 'ALL 6 players!';
+                else label.innerText = `${count} nearest players`;
+            }
+
+            document.querySelectorAll('.stun-pill').forEach(btn => {
+                const btnCount = parseInt(btn.dataset.count, 10);
+                btn.classList.toggle('active', btnCount === count);
+            });
+        }
+
+        // Host clicks a pill to change the stun count (0 to 6)
+        document.getElementById('stunPillsGroup').addEventListener('click', (e) => {
+            const btn = e.target.closest('.stun-pill');
+            if (!btn) return;
+            const count = parseInt(btn.dataset.count, 10);
+            updateStunUI(count);
+            if (currentRoomCode) {
+                socket.emit('set-stun-count', { roomCode: currentRoomCode, stunCount: count });
+            }
+        });
+
+        socket.on('stun-count-updated', (data) => {
+            if (data.roomCode === currentRoomCode && data.stunCount !== undefined) {
+                updateStunUI(data.stunCount);
+            }
+        });
 
         socket.on('physics-sync', (data) => {
             if (data.roomCode === currentRoomCode) {
-                targetX = data.x;
-                targetY = data.y;
+                if (data.stunCount !== undefined && data.stunCount !== currentStunCount) {
+                    updateStunUI(data.stunCount);
+                }
+                if (data.round && data.round !== currentRound) {
+                    currentRound = data.round;
+                    document.getElementById('hostRoundBadge').innerText = `${currentRound} / 2`;
+                    physics.setRound(currentRound - 1);
+                    renderer.setRound(currentRound - 1);
+                    applyHostRoundLayout(currentRound);
+                }
+
+                targetX     = data.x;
+                targetY     = data.y;
                 targetAngle = data.angle;
 
                 if (Math.hypot(targetX - physics.x, targetY - physics.y) > 80) {
-                    physics.x = targetX;
-                    physics.y = targetY;
+                    physics.x     = targetX;
+                    physics.y     = targetY;
                     physics.angle = targetAngle;
                 }
+
+                stunnedNodes = data.stunnedNodes || [];
             }
+        });
+
+        socket.on('round-complete', (data) => {
+            if (data.roomCode !== currentRoomCode) return;
+            gameActive = false;
+            const nextRound = data.nextRound;
+            document.getElementById('hostTransRound').innerText = `ROUND ${nextRound}`;
+            document.getElementById('roundTransScreen').style.display = 'flex';
+            let secs = 3;
+            document.getElementById('hostTransCountdown').innerText = secs;
+            const tick = setInterval(() => {
+                secs--;
+                if (secs > 0) { document.getElementById('hostTransCountdown').innerText = secs; }
+                else { clearInterval(tick); }
+            }, 1000);
+        });
+
+        socket.on('round-start', (data) => {
+            if (data.roomCode !== currentRoomCode) return;
+            currentRound = data.round;
+            document.getElementById('roundTransScreen').style.display = 'none';
+            document.getElementById('hostRoundBadge').innerText = `${currentRound} / 2`;
+            const roundIndex = currentRound - 1;
+            physics.setRound(roundIndex);
+            renderer.setRound(roundIndex);
+            applyHostRoundLayout(currentRound);
+            targetX     = physics.x;
+            targetY     = physics.y;
+            targetAngle = physics.angle;
+            stunnedNodes = [];
+            startTime    = null;
+            gameActive   = true;
+        });
+
+        socket.on('game-complete', (data) => {
+            if (data.roomCode !== currentRoomCode) return;
+            gameActive = false;
+            const elapsed = startTime ? ((Date.now() - startTime) / 1000).toFixed(1) : '0.0';
+            document.getElementById('hostFinalTime').innerText = `Total Time: ${elapsed}s`;
+            document.getElementById('finalWinScreen').style.display = 'flex';
         });
 
         socket.on('state-update', (data) => {
@@ -523,7 +755,21 @@
 
         socket.on('puzzle-reset', (data) => {
             if (data.roomCode === currentRoomCode) {
-                resetHostPuzzle();
+                currentRound = 1;
+                physics.setRound(0);
+                renderer.setRound(0);
+                applyHostRoundLayout(1);
+                targetX     = physics.x;
+                targetY     = physics.y;
+                targetAngle = physics.angle;
+                stunnedNodes = [];
+                startTime    = null;
+                gameActive   = true;
+                document.getElementById('winScreen').style.display      = 'none';
+                document.getElementById('finalWinScreen').style.display  = 'none';
+                document.getElementById('roundTransScreen').style.display = 'none';
+                document.getElementById('timer').innerText = '0.0s';
+                document.getElementById('hostRoundBadge').innerText = '1 / 2';
             }
         });
 
@@ -545,9 +791,11 @@
         });
 
         document.getElementById('btnWinPlayAgain').addEventListener('click', () => {
-            if (currentRoomCode) {
-                socket.emit('reset-puzzle');
-            }
+            if (currentRoomCode) socket.emit('reset-puzzle');
+        });
+
+        document.getElementById('btnFinalWinPlayAgain').addEventListener('click', () => {
+            if (currentRoomCode) socket.emit('reset-puzzle');
         });
 
         document.getElementById('btnNewRoom').addEventListener('click', () => {
@@ -558,7 +806,7 @@
             document.getElementById('hostModal').style.display = 'flex';
         });
 
-        // Game Loop - smoothly tracks authoritative server state
+        // Game Loop
         function gameLoop() {
             if (currentRoomCode && gameActive) {
                 const lerpFactor = 0.4;
@@ -566,23 +814,18 @@
                 physics.y += (targetY - physics.y) * lerpFactor;
 
                 let angleDiff = (targetAngle - physics.angle) % (Math.PI * 2);
-                if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                if (angleDiff > Math.PI)  angleDiff -= Math.PI * 2;
                 if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
                 physics.angle += angleDiff * lerpFactor;
 
-                renderer.render(physics, playersList, null);
+                renderer.render(physics, playersList, null, stunnedNodes);
 
                 if (startTime) {
                     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                     document.getElementById('timer').innerText = `${elapsed}s`;
                 }
-
-                if (physics.x > 780 && gameActive) {
-                    gameActive = false;
-                    const elapsed = startTime ? ((Date.now() - startTime) / 1000).toFixed(1) : '0.0';
-                    document.getElementById('finalTime').innerText = `Clear Time: ${elapsed} seconds`;
-                    document.getElementById('winScreen').style.display = 'flex';
-                }
+            } else if (currentRoomCode) {
+                renderer.render(physics, playersList, null, stunnedNodes);
             }
             requestAnimationFrame(gameLoop);
         }
